@@ -3,20 +3,20 @@ var readline = require('readline');
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
 var sql = require('mssql');
+var db = require('./dbCreds');
 var moment = require('moment');
 var startDateTime = process.argv[2];
 var endDateTime = process.argv[3];
 
-//const config = "mssql://dev_calendar:4T7XqJRtQ3pzC3hq7@acctadv.cloudapp.net/sqlexpress/PresentationPrism";
 const config = {
-	user: 'dev_calendar',
-	password: '4T7XqJRtQ3pzC3hq7',
-	server: 'acctadv.cloudapp.net', // You can use 'localhost\\instance' to connect to named instance
+	user: db.user,
+	password: db.password,
+	server: db.server,
 
 	options:{
-		database: 'PresentationPrism',
-		instancename: 'sqlexpress',
-		port: 52342
+		database: db.database,
+		instancename: db.instancename,
+		port: db.port
 	}
 }
 
@@ -192,36 +192,36 @@ function createCalendarTable() {
 	//queryObj.table('dbo.z_Calendar');
 
 
-	// sql.connect(config).then(function () {
-	// 	new sql.Request().query('select * from tbl_Topics').then(function (recordset) {
-	// 		console.log(recordset);
-	// 	}).catch(function (err) {
-	// 		console.log(err);
-	// 	})
-	// }).catch(function (err) {
-	// 	console.log('Promise err: ',err);
-	// })
+	sql.connect(config).then(function () {
+		new sql.Request().query('select * from tbl_Topics').then(function (recordset) {
+			console.log(recordset);
+		}).catch(function (err) {
+			console.log(err);
+		})
+	}).catch(function (err) {
+		console.log('Promise err: ',err);
+	})
 	
 
-	sql.connect(config).then(function () {
-			var table = new sql.Table('z_Calendar'); // or temporary table, e.g. #temptable
-			table.create = true;
-			table.columns.add('ID', sql.NVarChar(sql.MAX), {nullable: false});
-			table.columns.add('ICalUID', sql.VarChar(sql.MAX), {nullable: false});
-			table.columns.add('CalSum', sql.VarChar(sql.MAX), {nullable: true});
-			table.columns.add('EventItemSum', sql.VarChar(sql.MAX), {nullable: true});
-			table.columns.add('EventItemStartTime', sql.DateTime, {nullable: true});
-			table.columns.add('EventItemDuration', sql.Decimal(4,2), {nullable: true});
-
-			var request = new sql.Request();
-			request.bulk(table, function(err, rowCount) {
-				console.log(err);
-			});
-
-
-	}).catch(function (err) {
-		console.log(err);
-	})
+	// sql.connect(config).then(function () {
+	// 		var table = new sql.Table('z_Calendar'); // or temporary table, e.g. #temptable
+	// 		table.create = true;
+	// 		table.columns.add('ID', sql.NVarChar(sql.MAX), {nullable: false});
+	// 		table.columns.add('ICalUID', sql.VarChar(sql.MAX), {nullable: false});
+	// 		table.columns.add('CalSum', sql.VarChar(sql.MAX), {nullable: true});
+	// 		table.columns.add('EventItemSum', sql.VarChar(sql.MAX), {nullable: true});
+	// 		table.columns.add('EventItemStartTime', sql.DateTime, {nullable: true});
+	// 		table.columns.add('EventItemDuration', sql.Decimal(4,2), {nullable: true});
+	//
+	// 		var request = new sql.Request();
+	// 		request.bulk(table, function(err, rowCount) {
+	// 			console.log(err);
+	// 		});
+	//
+	//
+	// }).catch(function (err) {
+	// 	console.log(err);
+	// })
 
 
 
