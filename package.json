@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "google-auth-library": "^0.10.0",
-    "googleapis": "^18.0.0"
+    "googleapis": "^18.0.0",
+    "mssql": "^3.3.0"
   }
 }
