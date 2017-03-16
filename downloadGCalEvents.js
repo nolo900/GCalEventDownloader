@@ -2,10 +2,16 @@ var fs = require('fs');
 var readline = require('readline');
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
+var sql = require('mssql');
+var startDateTime = process.argv[2];
+var endDateTime = process.argv[3];
+
+
+
 //var calID = "austinbmiles.com_isc8j69dhqij1sncqefgd9b02o@group.calendar.google.com";
 
 // If modifying these scopes, delete your previously saved credentials
-// at ~/.credentials/calendar-nodejs-quickstart.json
+// at ~/.credentials/downloadGCalEvents-nodejs.json
 var SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
 var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
 	process.env.USERPROFILE) + '/.credentials/';
@@ -132,4 +138,103 @@ function listEvents(auth) {
 // Posts Data to Specified MSSQL DB
 function postEventsToDB(auth) {
 
+	//make sure args are correct, correct # of args, startdate before enddate, args are actually valid dates
+	// display usage hints if any of this is not true
+
+
+	//connect to db
+	// wipe table clean ( SQL Truncate Table )
+
+	// for each calendar in calendarslist
+	//  allEvents = calendar.GetAllEvents, max req limit in 9999, should be plenty
+	//
+	//  for each event in allEvents
+	//    extract relevant data for each event into obj
+
+	//calculate time difference
+
+	queryObj.data{
+		'ID': eventItem.Id,
+		'ICalUID': eventItem.ICalUID,
+		'CalSum': calendar.Summary,
+		'EventItemSum': eventItem.Summary,
+		'EventItemStartTime': eventItem.Start.DateTime,
+		'EventItemDuration': hours.toNumber(2)
+	};
+
+
+
+
+
+
+
+}
+
+function createCalendarTable() {
+	// var queryObj = new sql.Query({
+	// 	host: 'acctadv.cloudapp.net\\sqlexpress',
+	// 	port: 52342,
+	// 	username: 'remote_sa',
+	// 	password: 'mypassword',
+	// 	database: 'PresentationPrism'
+	// })
+
+	//queryObj.table('dbo.mytable');
+
+	var table = new sql.Table('z_Calendar'); // or temporary table, e.g. #temptable
+	table.create = true;
+	table.columns.add('ID', sql.VarChar(MAX), {nullable: false});
+	table.columns.add('ICalUID', sql.VarChar(MAX), {nullable: false});
+	table.columns.add('CalSum', sql.VarChar(MAX), {nullable: true});
+	table.columns.add('EventItemSum', sql.VarChar(MAX), {nullable: true});
+	table.columns.add('EventItemStartTime', sql.DateTime, {nullable: true});
+	table.columns.add('EventItemDuration', sql.Decimal(4,2), {nullable: true});
+	//table.columns.add('GUID', sql.VarChar(MAX), {nullable: false});
+	//table.rows.add(777, 'test');
+
+	var request = new sql.Request();
+	request.bulk(table, function(err, rowCount) {
+		// ... error checks
+	});
+
+
+}
+
+
+// sql.connect("mssql://username:password@localhost/database").then(function() {
+// 	// Query
+//
+// 	new sql.Request().query('select * from mytable').then(function(recordset) {
+// 		console.dir(recordset);
+// 	}).catch(function(err) {
+// 		// ... query error checks
+// 	});
+//
+// 	// Stored Procedure
+//
+// 	new sql.Request()
+// 		.input('input_parameter', sql.Int, value)
+// 		.output('output_parameter', sql.VarChar(50))
+// 		.execute('procedure_name').then(function(recordsets) {
+// 		console.dir(recordsets);
+// 	}).catch(function(err) {
+// 		// ... execute error checks
+// 	});
+//
+// 	// ES6 Tagged template literals (experimental)
+//
+// 	sql.query`select * from mytable where id = ${value}`.then(function(recordset) {
+// 		console.dir(recordset);
+// 	}).catch(function(err) {
+// 		// ... query error checks
+// 	});
+// }).catch(function(err) {
+// 	// ... connect error checks
+// });
+
+function displayUsageHints() {
+	console.log('--------------------------- USAGE HINTS -------------------------------');
+	console.log('node downloadGCalEvents.js startDatetime endDatetime');
+	console.log('** Datetime must be in ISO format: "2016-12-07T20:30:00-05:00" **');
+	console.log('-----------------------------------------------------------------------');
 }
