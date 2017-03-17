@@ -7,7 +7,7 @@ var db = require('./dbCreds');
 var moment = require('moment');
 var startDateTime = process.argv[2];
 var endDateTime = process.argv[3];
-
+var argLength = process.argv.length;
 const config = {
 	user: db.user,
 	password: db.password,
@@ -37,7 +37,6 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
 	// Google Calendar API.
 	// authorize(JSON.parse(content), listEvents);
 	//createCalendarTable();
-	//insertRow(myRow);
 	//truncateCalendarTable();
 	authorize(JSON.parse(content), printAllFormattedEvents);
 
@@ -150,25 +149,44 @@ function listEvents(auth) {
 	});
 }
 
+function hasValidArguments() {
+
+	startDateTime = moment(startDateTime);
+	endDateTime = moment(endDateTime);
+
+	if (process.argv.length !== 4 || process.argv.length === 2){
+		console.log('Must use two arguments...see below..');
+		displayUsageHints();
+		return false;
+	}
+
+	if(!startDateTime.isValid() || !endDateTime.isValid()){
+		console.log('Must Use Valid Dates...see below..');
+		displayUsageHints();
+		return false;
+	}
+
+	if (startDateTime.isAfter(endDateTime)){
+		console.log("StartDateTime cannot be before EndDateTime");
+		displayUsageHints();
+		return false;
+	}
+
+}
+
 function printAllFormattedEvents(auth) {
 
-	//make sure args are correct, correct # of args, startdate before enddate, args are actually valid dates
+	//make sure args are valid, correct # of args, startdate before enddate, args are actually valid dates
 	// display usage hints if any of this is not true
+	if (!hasValidArguments()) {return};
+
+	if (process.argv.length === 2 ){
+		//run scheduler
+
+	};
 
 
-	//connect to db
-	// wipe table clean ( SQL Truncate Table )
-
-	// for each calendar in calendarslist
-
-
-	//  allEvents = calendar.GetAllEvents, max req limit in 9999, should be plenty
-	//
-	//  for each event in allEvents
-	//    extract relevant data for each event into obj
 	var calendar = google.calendar('v3');
-	var myCalendarIDs = [];
-
 
 	calendar.calendarList.list({
 		auth: auth
@@ -182,95 +200,67 @@ function printAllFormattedEvents(auth) {
 		var myCalendars = response.items;
 
 		myCalendars.forEach(function (cal) {
-			myCalendarIDs.push(cal.id);
+			getCalendarEvents(auth,cal.id);
 		});
-		//console.log(myCalendarIDs);
-
-		myCalendarIDs.forEach(function (cal) {
-
-			console.log("CALENDAR: " + cal);
-			calendar.events.list({
-				auth: auth,
-				calendarId: cal,
-				maxResults: 5,
-				singleEvents: true
-			},function (err,response) {
-				if (err) {
-					console.log(err);
-					return;
-				}
-
-				var myEvents = response.items;
-
-				for (event in myEvents){
-					console.log("EVENT SUMMARY: " + event.summary);
-				}
-
-
-			});
-		});
-
 
 
 	});
 
-
-
-
-	// calendar.events.list({
-	// 	auth: auth,
-	// 	calendarId: 'primary',
-	// 	timeMin: (new Date()).toISOString(),
-	// 	maxResults: 10,
-	// 	singleEvents: true,
-	// 	orderBy: 'startTime'
-	// }, function(err, response) {
-	// 	if (err) {
-	// 		console.log('The API returned an error: ' + err);
-	// 		return;
-	// 	}
-	// 	var events = response.items;
-	// 	if (events.length == 0) {
-	// 		console.log('No upcoming events found.');
-	// 	} else {
-	// 		console.log('Upcoming 10 events:');
-	// 		for (var i = 0; i < events.length; i++) {
-	// 			var event = events[i];
-	// 			var start = event.start.dateTime || event.start.date;
-	// 			console.log('%s - %s', start, event.summary);
-	// 		}
-	// 	}
-	// });
-	//
-	//
-	// //calculate time difference
-	// var calEventStartTime = moment(eventItem.Start.DateTime);
-	// var calEventEndTime = moment(eventItem.End.DateTime);
-	// var timeDiff = (calEventEndTime - calEventStartTime);
-	// var timeDiffHours = timeDiff.toFixed(2);
-	//
-	//
-	// var queryObj.data {
-	// 	'ID': eventItem.Id,
-	// 	'ICalUID': eventItem.ICalUID,
-	// 	'CalSum': calendar.Summary,
-	// 	'EventItemSum': eventItem.Summary,
-	// 	'EventItemStartTime': eventItem.Start.DateTime,
-	// 	'EventItemDuration': hours
-	// };
-
-
 }
 
+function getCalendarEvents(auth, calID) {
 
-var myRow = {
-	ID: 'asgaseg',
-	ICalUID: 'gasdgagd',
-	CalSum: 'Test',
-	EventItemSum: 'Here is text',
-	EventItemStartTime: '12/04/2011 12:00:00 AM',
-	EventItemDuration: '2.44'
-}
+		let myRow = {};
+		console.log("CALENDAR: " + calID);
+		let calendar = google.calendar('v3');
+
+		calendar.events.list({
+			auth: auth,
+			calendarId: calID,
+			timeMin: startDateTime,
+			timeMax: endDateTime,
+			maxResults: 9999,
+			singleEvents: true,
+			showDeleted: false
+		},function (err,response) {
+			if (err) {
+				console.log("Calendar Event Request Error: " + calID + "->" + err.message);
+				return;
+			}
+
+			var myEvents = response;
+
+			if (myEvents != 'Not Found'){
+
+				if (myEvents.hasOwnProperty('items')){
+					for (event in myEvents.items){
+
+						var start = moment(myEvents.items[event].start.dateTime);
+						var end = moment(myEvents.items[event].end.dateTime);
+						var diff = end.diff(start);
+						var durationHours = moment.duration(diff).asHours().toFixed(2);
+
+						myRow = {};
+
+						myRow.ID = myEvents.items[event].id;
+						myRow.ICalUID = myEvents.items[event].iCalUID;
+						myRow.CalSum = myEvents.summary;
+						myRow.EventItemSum = myEvents.items[event].summary;
+						myRow.EventItemStartTime = moment(myEvents.items[event].start.dateTime).format('YYYY-MM-DD[T]HH:mm:ss') || null;
+						myRow.EventItemEndTime = moment(myEvents.items[event].end.dateTime).format('YYYY-MM-DD[T]HH:mm:ss') || null;
+						myRow.EventItemDuration = durationHours;
+
+						insertRow(myRow);
+						console.log(myRow);
+
+					}
+				}
+
+			}
+
+		});
+
+};
 
 function insertRow(rowObj) {
 	var dbConn = new sql.Connection(config);
@@ -282,20 +272,20 @@ function insertRow(rowObj) {
 
 			var request = new sql.Request(transaction);
 
-			request.query(`INSERT into z_Calendar(ID,ICalUID,CalSum,EventItemSum,EventItemStartTime,EventItemDuration) values
-			('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemDuration}')
+			request.query(`INSERT into z_Calendar(ID,ICalUID,CalSum,EventItemSum,EventItemStartTime,EventItemEndTime,EventItemDuration) values
+			('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemEndTime}','${rowObj.EventItemDuration}')
 			`).then(function () {
 					transaction.commit().then(function (recordSet) {
-						console.log(recordSet);
+						//console.log(recordSet);
 						dbConn.close();
 					}).catch(function (err) {
 
-						console.log("Error in Transaction Commit " + err);
+						console.log("Error in Transaction Commit " + err + " -> " + rowObj.CalSum + rowObj.EventItemSum);
 						dbConn.close();
 					});
 				}).catch(function (err) {
 
-				console.log("Error in Transaction Begin " + err);
+				console.log("Error in Transaction Begin " + err + " -> " + rowObj.CalSum + rowObj.EventItemSum);
 				dbConn.close();
 			});
 
@@ -307,7 +297,18 @@ function insertRow(rowObj) {
 	}).catch(function (err) {
 
 		console.log(err);
+		dbConn.close();
 	});
+
+	dbConn.close();
+}
+
+function displayUsageHints() {
+	console.log('--------------------------- USAGE HINTS -------------------------------');
+	console.log('node downloadGCalEvents.js startDatetime endDatetime');
+	console.log('** Datetime can be in many formats but ISO is most accurate....');
+	console.log('** "2016-12-07T20:30:00-05:00" **');
+	console.log('-----------------------------------------------------------------------');
 }
 
 function truncateCalendarTable() {
@@ -318,8 +319,6 @@ function truncateCalendarTable() {
 		console.log(err);
 	})
 }
-
-
 function createCalendarTable() {
 
 	sql.connect(config).then(function () {
@@ -330,7 +329,8 @@ function createCalendarTable() {
 			table.columns.add('CalSum', sql.VarChar(sql.MAX), {nullable: true});
 			table.columns.add('EventItemSum', sql.VarChar(sql.MAX), {nullable: true});
 			table.columns.add('EventItemStartTime', sql.DateTime, {nullable: true});
-			table.columns.add('EventItemDuration', sql.Decimal(4,2), {nullable: true});
+			table.columns.add('EventItemEndTime', sql.DateTime, {nullable: true});
+			table.columns.add('EventItemDuration', sql.Decimal(8,2), {nullable: true});
 
 			var request = new sql.Request();
 			request.bulk(table, function(err, rowCount) {
@@ -345,9 +345,3 @@ function createCalendarTable() {
 
 }
 
-function displayUsageHints() {
-	console.log('--------------------------- USAGE HINTS -------------------------------');
-	console.log('node downloadGCalEvents.js startDatetime endDatetime');
-	console.log('** Datetime must be in ISO format: "2016-12-07T20:30:00-05:00" **');
-	console.log('-----------------------------------------------------------------------');
-}
