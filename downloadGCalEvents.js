@@ -20,8 +20,6 @@ const config = {
 	}
 }
 
-//var calID = "austinbmiles.com_isc8j69dhqij1sncqefgd9b02o@group.calendar.google.com";
-
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/downloadGCalEvents-nodejs.json
 var SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
@@ -38,7 +36,11 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
 	// Authorize a client with the loaded credentials, then call the
 	// Google Calendar API.
 	// authorize(JSON.parse(content), listEvents);
-	createCalendarTable();
+	//createCalendarTable();
+	//insertRow(myRow);
+	//truncateCalendarTable();
+	authorize(JSON.parse(content), printAllFormattedEvents);
+
 });
 
 /**
@@ -148,139 +150,200 @@ function listEvents(auth) {
 	});
 }
 
-// Posts Data to Specified MSSQL DB
-// function postEventsToDB(auth) {
-//
-// 	//make sure args are correct, correct # of args, startdate before enddate, args are actually valid dates
-// 	// display usage hints if any of this is not true
-//
-//
-// 	//connect to db
-// 	// wipe table clean ( SQL Truncate Table )
-//
-// 	// for each calendar in calendarslist
-// 	//  allEvents = calendar.GetAllEvents, max req limit in 9999, should be plenty
-// 	//
-// 	//  for each event in allEvents
-// 	//    extract relevant data for each event into obj
-//
-// 	//calculate time difference
-// 	var calEventStartTime = moment(eventItem.Start.DateTime);
-// 	var calEventEndTime = moment(eventItem.End.DateTime);
-// 	var timeDiff = (calEventEndTime - calEventStartTime);
-// 	var timeDiffHours = timeDiff.toFixed(2);
-//
-//
-// 	var queryObj.data {
-// 		'ID': eventItem.Id,
-// 		'ICalUID': eventItem.ICalUID,
-// 		'CalSum': calendar.Summary,
-// 		'EventItemSum': eventItem.Summary,
-// 		'EventItemStartTime': eventItem.Start.DateTime,
-// 		'EventItemDuration': hours
-// 	};
-//
-//
-// }
+function printAllFormattedEvents(auth) {
 
-function createCalendarTable() {
+	//make sure args are correct, correct # of args, startdate before enddate, args are actually valid dates
+	// display usage hints if any of this is not true
 
-	// var queryObj = new sql.Query({
+
+	//connect to db
+	// wipe table clean ( SQL Truncate Table )
+
+	// for each calendar in calendarslist
+
+
+	//  allEvents = calendar.GetAllEvents, max req limit in 9999, should be plenty
 	//
-	// })
-
-	//queryObj.table('dbo.z_Calendar');
-
-
-	sql.connect(config).then(function () {
-		new sql.Request().query('select * from tbl_Topics').then(function (recordset) {
-			console.log(recordset);
-		}).catch(function (err) {
-			console.log(err);
-		})
-	}).catch(function (err) {
-		console.log('Promise err: ',err);
-	})
-	
-
-	// sql.connect(config).then(function () {
-	// 		var table = new sql.Table('z_Calendar'); // or temporary table, e.g. #temptable
-	// 		table.create = true;
-	// 		table.columns.add('ID', sql.NVarChar(sql.MAX), {nullable: false});
-	// 		table.columns.add('ICalUID', sql.VarChar(sql.MAX), {nullable: false});
-	// 		table.columns.add('CalSum', sql.VarChar(sql.MAX), {nullable: true});
-	// 		table.columns.add('EventItemSum', sql.VarChar(sql.MAX), {nullable: true});
-	// 		table.columns.add('EventItemStartTime', sql.DateTime, {nullable: true});
-	// 		table.columns.add('EventItemDuration', sql.Decimal(4,2), {nullable: true});
-	//
-	// 		var request = new sql.Request();
-	// 		request.bulk(table, function(err, rowCount) {
-	// 			console.log(err);
-	// 		});
-	//
-	//
-	// }).catch(function (err) {
-	// 	console.log(err);
-	// })
+	//  for each event in allEvents
+	//    extract relevant data for each event into obj
+	var calendar = google.calendar('v3');
+	var myCalendarIDs = [];
 
 
+	calendar.calendarList.list({
+		auth: auth
+	},
+	function (err, response) {
+		if (err)    {
+			console.log("API Returned Error --> ", err);
+			return;
+		}
 
-	// sql.connect(config, function (err) {
-	// 	var table = new sql.Table('z_Calendar'); // or temporary table, e.g. #temptable
-	// 	table.create = true;
-	// 	table.columns.add('ID', sql.NVarChar(sql.MAX), {nullable: false});
-	// 	table.columns.add('ICalUID', sql.VarChar(sql.MAX), {nullable: false});
-	// 	table.columns.add('CalSum', sql.VarChar(sql.MAX), {nullable: true});
-	// 	table.columns.add('EventItemSum', sql.VarChar(sql.MAX), {nullable: true});
-	// 	table.columns.add('EventItemStartTime', sql.DateTime, {nullable: true});
-	// 	table.columns.add('EventItemDuration', sql.Decimal(4,2), {nullable: true});
-	// 	//table.columns.add('GUID', sql.VarChar(MAX), {nullable: false});
-	// 	//table.rows.add(777, 'test');
-	//
-	// 	var request = new sql.Request();
-	// 	request.bulk(table, function(err, rowCount) {
-	// 		// ... error checks
-	// 	});
-	//
-	// 	if(err){console.log(err)};
+		var myCalendars = response.items;
+
+		myCalendars.forEach(function (cal) {
+			myCalendarIDs.push(cal.id);
+		});
+		//console.log(myCalendarIDs);
+
+		myCalendarIDs.forEach(function (cal) {
+
+			console.log("CALENDAR: " + cal);
+			calendar.events.list({
+				auth: auth,
+				calendarId: cal,
+				maxResults: 5,
+				singleEvents: true
+			},function (err,response) {
+				if (err) {
+					console.log(err);
+					return;
+				}
+
+				var myEvents = response.items;
+
+				for (event in myEvents){
+					console.log("EVENT SUMMARY: " + event.summary);
+				}
+
+
+			});
+		});
+
+
+
+	});
+
+
+
+
+	// calendar.events.list({
+	// 	auth: auth,
+	// 	calendarId: 'primary',
+	// 	timeMin: (new Date()).toISOString(),
+	// 	maxResults: 10,
+	// 	singleEvents: true,
+	// 	orderBy: 'startTime'
+	// }, function(err, response) {
+	// 	if (err) {
+	// 		console.log('The API returned an error: ' + err);
+	// 		return;
+	// 	}
+	// 	var events = response.items;
+	// 	if (events.length == 0) {
+	// 		console.log('No upcoming events found.');
+	// 	} else {
+	// 		console.log('Upcoming 10 events:');
+	// 		for (var i = 0; i < events.length; i++) {
+	// 			var event = events[i];
+	// 			var start = event.start.dateTime || event.start.date;
+	// 			console.log('%s - %s', start, event.summary);
+	// 		}
+	// 	}
 	// });
-
-
+	//
+	//
+	// //calculate time difference
+	// var calEventStartTime = moment(eventItem.Start.DateTime);
+	// var calEventEndTime = moment(eventItem.End.DateTime);
+	// var timeDiff = (calEventEndTime - calEventStartTime);
+	// var timeDiffHours = timeDiff.toFixed(2);
+	//
+	//
+	// var queryObj.data {
+	// 	'ID': eventItem.Id,
+	// 	'ICalUID': eventItem.ICalUID,
+	// 	'CalSum': calendar.Summary,
+	// 	'EventItemSum': eventItem.Summary,
+	// 	'EventItemStartTime': eventItem.Start.DateTime,
+	// 	'EventItemDuration': hours
+	// };
 
 
 }
 
 
-// sql.connect("mssql://username:password@localhost/database").then(function() {
-// 	// Query
-//
-// 	new sql.Request().query('select * from mytable').then(function(recordset) {
-// 		console.dir(recordset);
-// 	}).catch(function(err) {
-// 		// ... query error checks
-// 	});
-//
-// 	// Stored Procedure
-//
-// 	new sql.Request()
-// 		.input('input_parameter', sql.Int, value)
-// 		.output('output_parameter', sql.VarChar(50))
-// 		.execute('procedure_name').then(function(recordsets) {
-// 		console.dir(recordsets);
-// 	}).catch(function(err) {
-// 		// ... execute error checks
-// 	});
-//
-// 	// ES6 Tagged template literals (experimental)
-//
-// 	sql.query`select * from mytable where id = ${value}`.then(function(recordset) {
-// 		console.dir(recordset);
-// 	}).catch(function(err) {
-// 		// ... query error checks
-// 	});
-// }).catch(function(err) {
-// 	// ... connect error checks
-// });
+var myRow = {
+	ID: 'asgaseg',
+	ICalUID: 'gasdgagd',
+	CalSum: 'Test',
+	EventItemSum: 'Here is text',
+	EventItemStartTime: '12/04/2011 12:00:00 AM',
+	EventItemDuration: '2.44'
+}
+
+function insertRow(rowObj) {
+	var dbConn = new sql.Connection(config);
+	dbConn.connect().then(function () {
+
+		var transaction = new sql.Transaction(dbConn);
+
+		transaction.begin().then(function () {
+
+			var request = new sql.Request(transaction);
+
+			request.query(`INSERT into z_Calendar(ID,ICalUID,CalSum,EventItemSum,EventItemStartTime,EventItemDuration) values
+			('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemDuration}')
+			`).then(function () {
+					transaction.commit().then(function (recordSet) {
+						console.log(recordSet);
+						dbConn.close();
+					}).catch(function (err) {
+
+						console.log("Error in Transaction Commit " + err);
+						dbConn.close();
+					});
+				}).catch(function (err) {
+
+				console.log("Error in Transaction Begin " + err);
+				dbConn.close();
+			});
+
+		}).catch(function (err) {
+
+			console.log(err);
+			dbConn.close();
+		});
+	}).catch(function (err) {
+
+		console.log(err);
+	});
+}
+
+function truncateCalendarTable() {
+	sql.connect(config).then(function () {
+		var request = new sql.Request();
+		request.query('TRUNCATE TABLE z_Calendar');
+	}).catch(function (err) {
+		console.log(err);
+	})
+}
+
+
+function createCalendarTable() {
+
+	sql.connect(config).then(function () {
+			var table = new sql.Table('z_Calendar'); // or temporary table, e.g. #temptable
+			table.create = true;
+			table.columns.add('ID', sql.NVarChar(sql.MAX), {nullable: false});
+			table.columns.add('ICalUID', sql.VarChar(sql.MAX), {nullable: false});
+			table.columns.add('CalSum', sql.VarChar(sql.MAX), {nullable: true});
+			table.columns.add('EventItemSum', sql.VarChar(sql.MAX), {nullable: true});
+			table.columns.add('EventItemStartTime', sql.DateTime, {nullable: true});
+			table.columns.add('EventItemDuration', sql.Decimal(4,2), {nullable: true});
+
+			var request = new sql.Request();
+			request.bulk(table, function(err, rowCount) {
+				console.log(err);
+			});
+
+
+	}).catch(function (err) {
+		console.log(err);
+	})
+
+
+}
 
 function displayUsageHints() {
 	console.log('--------------------------- USAGE HINTS -------------------------------');
