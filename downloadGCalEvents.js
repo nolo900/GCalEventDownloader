@@ -5,9 +5,10 @@ var googleAuth = require('google-auth-library');
 var sql = require('mssql');
 var db = require('./dbCreds');
 var moment = require('moment');
+var schedule = require('node-schedule');
 var startDateTime = process.argv[2];
 var endDateTime = process.argv[3];
-var argLength = process.argv.length;
+
 const config = {
 	user: db.user,
 	password: db.password,
@@ -27,20 +28,51 @@ var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
 	process.env.USERPROFILE) + '/.credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'downloadGCalEvents-nodejs.json';
 
-// Load client secrets from a local file.
-fs.readFile('client_secret.json', function processClientSecrets(err, content) {
-	if (err) {
-		console.log('Error loading client secret file: ' + err);
+if (process.argv.length === 2){
+	// setup scheduler
+	console.log("Setting up scheduler...");
+	setupScheduler();
+
+} else {
+
+	if (process.argv.length !== 4){
+		console.log('Must use two arguments...see below..');
+		displayUsageHints();
 		return;
 	}
-	// Authorize a client with the loaded credentials, then call the
-	// Google Calendar API.
-	// authorize(JSON.parse(content), listEvents);
-	//createCalendarTable();
-	//truncateCalendarTable();
-	authorize(JSON.parse(content), printAllFormattedEvents);
+	console.log("about to run main..");
+	main();
+}
 
-});
+function setupScheduler() {
+
+	var job = schedule.scheduleJob({minute: 6}, function(){
+		main();
+	});
+
+	console.log("GCal Event Downloader :: Scheduled to run every morning @ 2:00AM EST...");
+}
+
+function main() {
+
+	// Load client secrets from a local file.
+	fs.readFile('client_secret.json', function processClientSecrets(err, content) {
+		if (err) {
+			console.log('Error loading client secret file: ' + err);
+			return;
+		}
+
+		//createCalendarTable();
+		//truncateCalendarTable();
+		console.log('about to downloadAndPostEvents');
+		// Authorize a client with the loaded credentials, then call the Google Calendar API.
+		authorize(JSON.parse(content), downloadAndPostEvents);
+
+	});
+
+}
+
+
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -154,12 +186,6 @@ function hasValidArguments() {
 	startDateTime = moment(startDateTime);
 	endDateTime = moment(endDateTime);
 
-	if (process.argv.length !== 4 || process.argv.length === 2){
-		console.log('Must use two arguments...see below..');
-		displayUsageHints();
-		return false;
-	}
-
 	if(!startDateTime.isValid() || !endDateTime.isValid()){
 		console.log('Must Use Valid Dates...see below..');
 		displayUsageHints();
@@ -171,21 +197,15 @@ function hasValidArguments() {
 		displayUsageHints();
 		return false;
 	}
-
+	return true;
 }
 
-function printAllFormattedEvents(auth) {
+function downloadAndPostEvents(auth) {
 
 	//make sure args are valid, correct # of args, startdate before enddate, args are actually valid dates
 	// display usage hints if any of this is not true
 	if (!hasValidArguments()) {return};
-
-	if (process.argv.length === 2 ){
-		//run scheduler
-
-	};
-
-
+	console.log("inside post events...");
 	var calendar = google.calendar('v3');
 
 	calendar.calendarList.list({
@@ -203,7 +223,7 @@ function printAllFormattedEvents(auth) {
 			getCalendarEvents(auth,cal.id);
 		});
 
-
+		console.log('Program last run at ' + moment().format());
 	});
 
 }
@@ -217,8 +237,8 @@ function getCalendarEvents(auth, calID) {
 		calendar.events.list({
 			auth: auth,
 			calendarId: calID,
-			timeMin: startDateTime,
-			timeMax: endDateTime,
+			timeMin: startDateTime.format(),
+			timeMax: endDateTime.format(),
 			maxResults: 9999,
 			singleEvents: true,
 			showDeleted: false
@@ -308,6 +328,10 @@ function displayUsageHints() {
 	console.log('node downloadGCalEvents.js startDatetime endDatetime');
 	console.log('** Datetime can be in many formats but ISO is most accurate....');
 	console.log('** "2016-12-07T20:30:00-05:00" **');
+	console.log('---------------------------------');
+	console.log('** To Initiate the Scheduler, run without arguments like this....')
+	console.log('node downloadGCalEvents.js');
+	console.log('** The scheduler is currently setup to run every morning at 2:30AM **');
 	console.log('-----------------------------------------------------------------------');
 }
 
