@@ -21,6 +21,7 @@ const config = {
 	}
 }
 
+
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/downloadGCalEvents-nodejs.json
 var SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
@@ -46,11 +47,11 @@ if (process.argv.length === 2){
 
 function setupScheduler() {
 
-	var job = schedule.scheduleJob({minute: 6}, function(){
+	var job = schedule.scheduleJob({hour: 2, minute: 30}, function(){
 		main();
 	});
 
-	console.log("GCal Event Downloader :: Scheduled to run every morning @ 2:00AM EST...");
+	console.log("GCal Event Downloader :: Scheduled to run every morning @ 2:30AM EST...");
 }
 
 function main() {
@@ -208,30 +209,38 @@ function downloadAndPostEvents(auth) {
 	console.log("inside post events...");
 	var calendar = google.calendar('v3');
 
-	calendar.calendarList.list({
-		auth: auth
-	},
-	function (err, response) {
-		if (err)    {
-			console.log("API Returned Error --> ", err);
-			return;
-		}
+	function getCalendars(cb) {
+		calendar.calendarList.list({
+			auth: auth
+		}, function (err, response) {
+			if (err) {
+				console.log("API Returned Error --> ", err);
+				return;
+			}
 
-		var myCalendars = response.items;
+			var myCalendars = response.items;
 
-		myCalendars.forEach(function (cal) {
-			getCalendarEvents(auth,cal.id);
+			myCalendars.forEach(function (cal) {
+				getCalendarEvents(auth, cal.id);
+			});
+
 		});
 
+		cb();
+
+	}
+
+	function printLastTimeRun() {
 		console.log('Program last run at ' + moment().format());
-	});
+	}
+
+	getCalendars(printLastTimeRun);
 
 }
 
 function getCalendarEvents(auth, calID) {
-
+		let eventCount = 0;
 		let myRow = {};
-		console.log("CALENDAR: " + calID);
 		let calendar = google.calendar('v3');
 
 		calendar.events.list({
@@ -249,10 +258,16 @@ function getCalendarEvents(auth, calID) {
 			}
 
 			var myEvents = response;
+			//console.log(myEvents);
+
 
 			if (myEvents != 'Not Found'){
 
 				if (myEvents.hasOwnProperty('items')){
+
+					eventCount = myEvents.items.length;
+					console.log(`Grabbed ${eventCount} items from ${calID}.`);
+
 					for (event in myEvents.items){
 
 						var start = moment(myEvents.items[event].start.dateTime);
@@ -283,6 +298,7 @@ function getCalendarEvents(auth, calID) {
 };
 
 function insertRow(rowObj) {
+
 	var dbConn = new sql.Connection(config);
 	dbConn.connect().then(function () {
 
@@ -296,7 +312,7 @@ function insertRow(rowObj) {
 			('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemEndTime}','${rowObj.EventItemDuration}')
 			`).then(function () {
 					transaction.commit().then(function (recordSet) {
-						//console.log(recordSet);
+						console.log(recordSet);
 						dbConn.close();
 					}).catch(function (err) {
 
