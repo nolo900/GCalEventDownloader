@@ -17,7 +17,7 @@ exports.downloadEvents = function(startDateTime, endDateTime, doneFn) {
 
 	//let allEvents = [];
 	// Load client secrets from a local file.
-	fs.readFile('../client_secret.json', function processClientSecrets(err, content) {
+	fs.readFile('client_secret.json', function processClientSecrets(err, content) {
 		if (err) {
 			console.log('Error loading client secret file: ' + err);
 			return;
@@ -179,8 +179,8 @@ function getCalendarEvents(auth, calID, startDateTime, endDateTime, data, markDo
 
 					myRow.ID = myEvents.items[event].id;
 					myRow.ICalUID = myEvents.items[event].iCalUID;
-					myRow.CalSum = myEvents.summary;
-					myRow.EventItemSum = myEvents.items[event].summary;
+					myRow.CalSum = myEvents.summary.replace(/'/g, "''");
+					myRow.EventItemSum = myEvents.items[event].summary.replace(/'/g, "''");
 					myRow.EventItemStartTime = moment(myEvents.items[event].start.dateTime).format('YYYY-MM-DD[T]HH:mm:ss') || null;
 					myRow.EventItemEndTime = moment(myEvents.items[event].end.dateTime).format('YYYY-MM-DD[T]HH:mm:ss') || null;
 					myRow.EventItemDuration = durationHours;

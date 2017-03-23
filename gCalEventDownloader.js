@@ -29,9 +29,18 @@ function main() {
 
 function insertIntoDb(data) {
 	// build sql strings (it's sync)
-	console.log(data);
-	console.log(data.length);
+	//console.log(data);
+	//console.log(data.length);
+
+	mssql.bulkInsert("z_Calendar", data);
+
 }
+
+
+
+
+
+
 
 // if (process.argv.length === 2){
 // 	// setup scheduler
