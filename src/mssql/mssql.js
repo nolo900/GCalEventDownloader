@@ -13,89 +13,27 @@ const config = {
 	}
 };
 
-exports.bulkInsert = function(tableName, dataArray) {
+exports.bulkInsert = function(tableName, sqlString) {
 
 	truncateCalendarTable(tableName)
-		.then(buildSQLstring(tableName,dataArray))
-		.then(sqlString => executeSql(sqlString))
+		.then(() => executeSql(sqlString))
 		.catch(err => {console.log(err)});
 };
-
-function buildSQLstring(tableName, dataArray) {
-
-	// return new Promise(function (resolve,reject) {
-	// 	function resolve() {
-			let sqlString = `INSERT into ${tableName}(ID,ICalUID,CalSum,EventItemSum,EventItemStartTime,EventItemEndTime,EventItemDuration) values`;
-			dataArray.forEach(function (rowObj) {
-				sqlString += `('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemEndTime}','${rowObj.EventItemDuration}'),`
-			})
-			console.log(sqlString);
-			return sqlString;
-	// 	}
-	// })
-
-}
 
 function executeSql(sqlString) {
 
 	sql.connect(config).then(function () {
-		var transaction = new sql.Transaction();
+		new sql.Request()
+			.query(sqlString).then(function(recordset) {
+			console.dir(recordset);
+			sql.close();
+		}).catch(function(err) {
+			console.log("Shit went wrong...",err);
+			sql.close();
+		});
+	})
 
-		transaction.begin().then(function () {
-			var request = new sql.Request(transaction);
-
-			request.query(sqlString).then(function () {
-				transaction.commit().then(function (recordset) {
-					console.log("Finished Trying to Post Data... I think...");
-					sql.close();
-				})
-			})
-		})
-
-	}).catch(err => {console.log('MSSQL Posting Error: ',err)});
 }
-//
-//
-// function insertRow(rowObj) {
-// 	var dbConn = new sql.Connection(config);
-// 	dbConn.connect().then(function () {
-//
-// 		var transaction = new sql.Transaction(dbConn);
-//
-// 		transaction.begin().then(function () {
-//
-// 			var request = new sql.Request(transaction);
-//
-// 			request.query(`INSERT into z_Calendar(ID,ICalUID,CalSum,EventItemSum,EventItemStartTime,EventItemEndTime,EventItemDuration) values
-// 			('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemEndTime}','${rowObj.EventItemDuration}')
-// 			`).then(function () {
-// 				transaction.commit().then(function (recordSet) {
-// 					console.log(recordSet);
-// 					dbConn.close();
-// 				}).catch(function (err) {
-//
-// 					console.log("Error in Transaction Commit " + err + " -> " + rowObj.CalSum + rowObj.EventItemSum);
-// 					dbConn.close();
-// 				});
-// 			}).catch(function (err) {
-//
-// 				console.log("Error in Transaction Begin " + err + " -> " + rowObj.CalSum + rowObj.EventItemSum);
-// 				dbConn.close();
-// 			});
-//
-// 		}).catch(function (err) {
-//
-// 			console.log(err);
-// 			dbConn.close();
-// 		});
-// 	}).catch(function (err) {
-//
-// 		console.log(err);
-// 		dbConn.close();
-// 	});
-//
-// 	dbConn.close();
-// }
 
 function truncateCalendarTable(tableName) {
 	return new Promise(function(resolve, reject) {
