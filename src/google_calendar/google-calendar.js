@@ -22,10 +22,7 @@ exports.downloadEvents = function(startDateTime, endDateTime, doneFn) {
 			console.log('Error loading client secret file: ' + err);
 			return;
 		}
-		console.log(startDateTime,endDateTime);
-		//createCalendarTable();
-		//truncateCalendarTable();
-		console.log('about to downloadAndPostEvents');
+		console.log(`Grabbing Google Calendar Events from ${startDateTime.format()} to ${endDateTime.format()}`);
 		// Authorize a client with the loaded credentials, then call the Google Calendar API.
 		authorize(JSON.parse(content), storeEventsInObject, startDateTime, endDateTime, doneFn);
 	});
@@ -109,10 +106,6 @@ function storeToken(token) {
 function storeEventsInObject(auth, startDateTime, endDateTime, doneFn) {
 
 	var data = [];
-
-	//make sure args are valid, correct # of args, startdate before enddate, args are actually valid dates
-	// display usage hints if any of this is not true
-	console.log("inside post events...");
 	var calendar = google.calendar('v3');
 
 	calendar.calendarList.list({
@@ -187,8 +180,6 @@ function getCalendarEvents(auth, calID, startDateTime, endDateTime, data, markDo
 
 
 					data.push(myRow);
-					// insertRow(myRow);
-					//console.log(data.length);
 
 				}
 

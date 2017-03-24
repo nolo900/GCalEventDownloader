@@ -1,5 +1,6 @@
 var sql = require('mssql');
 var db = require('../../dbCreds.js');
+var moment = require('moment');
 
 const config = {
 	user: db.user,
@@ -18,6 +19,7 @@ exports.bulkInsert = function(tableName, sqlString) {
 	truncateCalendarTable(tableName)
 		.then(() => executeSql(sqlString))
 		.catch(err => {console.log(err)});
+
 };
 
 function executeSql(sqlString) {
@@ -25,7 +27,8 @@ function executeSql(sqlString) {
 	sql.connect(config).then(function () {
 		new sql.Request()
 			.query(sqlString).then(function(recordset) {
-			console.dir(recordset);
+			//console.dir(recordset);
+			console.log('Events Posted to database at ' + moment().format());
 			sql.close();
 		}).catch(function(err) {
 			console.log("Shit went wrong...",err);
