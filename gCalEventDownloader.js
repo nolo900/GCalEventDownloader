@@ -51,11 +51,13 @@ function insertIntoDb(data) {
 
 function buildSQLstring(tableName, dataArray) {
 
-	let sqlString = `INSERT into ${tableName} (ID,ICalUID,CalSum,EventItemSum,EventItemStartTime,EventItemEndTime,EventItemDuration) values `;
+	let sqlString = '';
 	dataArray.forEach(function (rowObj) {
-		sqlString += `('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemEndTime}','${rowObj.EventItemDuration}'),`
+		sqlString += `INSERT into ${tableName} (ID,ICalUID,CalSum,EventItemSum,EventItemStartTime,EventItemEndTime,EventItemDuration) values `;
+		sqlString += `('${rowObj.ID}','${rowObj.ICalUID}','${rowObj.CalSum}','${rowObj.EventItemSum}','${rowObj.EventItemStartTime}','${rowObj.EventItemEndTime}','${rowObj.EventItemDuration}');`;
 	})
-	sqlString = sqlString.slice(0, -1)+';';
+	//sqlString = sqlString.slice(0, -1)+';';
+	//console.log(sqlString);
 	return sqlString;
 
 }
